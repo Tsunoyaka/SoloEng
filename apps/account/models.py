@@ -1,7 +1,9 @@
 from django.db import models
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.utils.crypto import get_random_string
-
+from slugify import slugify
+from decouple import config
+from django.core.exceptions import ValidationError
 
 class UserManager(BaseUserManager):
     def _create(self, username, email, password, **extra_fields):
@@ -30,8 +32,9 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser):
-    username = models.CharField('Username', max_length=50)
-    email = models.EmailField('Email', max_length=255, primary_key=True)
+    username = models.CharField('Username', max_length=50, blank=True)
+    email = models.EmailField('Email', max_length=255, unique=True)
+    image = models.ImageField(upload_to='user_images', blank=True, null=True)
     is_active = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
     activation_code = models.CharField(max_length=8, blank=True)
@@ -49,6 +52,11 @@ class User(AbstractBaseUser):
 
     def has_perm(self, obj=None):
         return self.is_staff
+
+    def save(self,*args, **kwargs):
+        if not self.username:
+            raise ValidationError('Поле имени не может быть пустым!')
+        super().save(*args, **kwargs)
 
     def create_activation_code(self):
         code = get_random_string(length=8)

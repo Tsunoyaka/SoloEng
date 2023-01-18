@@ -1,6 +1,18 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
-from .views import ChangePasswordView, DeleteAccountView, RegistrationView, AccountActivationView, RestorePasswordView, SetRestoredPasswordView, ListUsersView, UserView
+from .views import (
+    ChangePasswordView, 
+    DeleteAccountView, 
+    RegistrationView, 
+    AccountActivationView, 
+    RestorePasswordView, 
+    SetRestoredPasswordView, 
+    ListUsersView, 
+    UserView, 
+    UpdateUsernameImageAccountView,
+    NewEmailView,
+    SetNewEmailView
+    )
 
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -21,6 +33,9 @@ urlpatterns = [
     path('delete-account/', DeleteAccountView.as_view(), name='delete-account'),
     path('user/<str:pk>/', UserView.as_view()),
     path('users/', ListUsersView.as_view()),
+    path('update-username-image/<str:email>/', UpdateUsernameImageAccountView.as_view()),
+    path('update-email/', NewEmailView.as_view()),
+    path('set-new-email/', SetNewEmailView.as_view()),
 ]
 
 

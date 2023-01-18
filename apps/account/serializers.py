@@ -17,10 +17,12 @@ def email_validator(email):
         return email
 
 
+
 class UsersSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('username', 'email')  
+
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password_confirm = serializers.CharField(max_length=128, required=True)
@@ -95,6 +97,17 @@ class RestorePasswordSerializer(serializers.Serializer):
             recipient_list=[email]
         )
 
+    def send_email_code(self):
+        email = self.validated_data.get('email')
+        user = User.objects.get(email=email)
+        user.create_activation_code()
+        send_mail(
+            subject='Change email',
+            message=f'Your code for ghange email {user.activation_code}',
+            from_email=settings.EMAIL_HOST_USER,
+            recipient_list=[email]
+        )
+
 
 class SetRestoredPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField(
@@ -131,3 +144,75 @@ class SetRestoredPasswordSerializer(serializers.Serializer):
         user.save()
 
 
+class UpdateUsernameImageSerializer(serializers.ModelSerializer):
+    def validate(self, attrs):
+        user = self.context['request'].user
+        attrs['user'] = user
+        return attrs
+
+    class Meta:
+        model = User
+        fields = ['username', 'image']
+
+    def update(self, instance: User, validated_data):
+        if instance.email == validated_data['user'].email:
+            instance.username = validated_data.get('username', instance.username) 
+            instance.image = validated_data.get('image', instance.image)
+            instance.save()
+        else:
+            raise serializers.ValidationError('Вы не можете совершить это действие!')
+
+
+class UpdateEmailSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ['old_email', 'new_email', 'new_email_confirm', 'code']
+
+    old_email = serializers.EmailField(
+        required=True, 
+        max_length=255,
+        validators=[email_validator]
+        )
+    new_email = serializers.EmailField(
+        required=True, 
+        max_length=255,
+        )
+    new_email_confirm = serializers.EmailField(
+        required=True, 
+        max_length=255,
+        )
+    code = serializers.CharField(min_length=1, max_length=8, required=True)
+ 
+
+    def validate_code(self, code):
+        if not User.objects.filter(activation_code=code).exists():
+            raise serializers.ValidationError(
+                'Wrong code'
+            )
+        return code
+    
+
+    def validate(self, attrs):
+        new_email = attrs.get('new_email')
+        new_email_confirm = attrs.get('new_email_confirm')
+        if new_email != new_email_confirm:
+            raise serializers.ValidationError(
+                'Email do not match'
+            )
+        return attrs
+
+
+    def update(self):
+        old_email = self.validated_data.get('old_email')
+        new_email = self.validated_data.get('new_email')
+        user_email = User.objects.get(email=old_email)
+        user_email.email = new_email
+        user_email.save()
+        # del_user = User.objects.get(email=old_email).delete()
+        # email = self.validated_data.get('email')
+        # user = User.objects.get(email=email)
+        # new_password = self.validated_data.get('new_password')
+        # user.set_password(new_password)
+        # user.activation_code = ''
+        # user.save()

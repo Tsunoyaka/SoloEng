@@ -13,13 +13,13 @@ from .serializers import (
     PasswordChangeSerializer,
     RestorePasswordSerializer,
     SetRestoredPasswordSerializer,
-    UsersSerializer
+    UsersSerializer,
+    UpdateUsernameImageSerializer,
+    UpdateEmailSerializer
     )
 
 
 User = get_user_model()
-
-
 
 
 class UserView(APIView):
@@ -99,6 +99,18 @@ class RestorePasswordView(APIView):
             )
 
 
+
+class NewEmailView(APIView):
+    def post(self, request: Request):
+        serializer = RestorePasswordSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.send_email_code()
+            return Response(
+                'Код для изменения почты был отправлен вам на почту.',
+                status=status.HTTP_200_OK
+            )
+
+
 class SetRestoredPasswordView(APIView):
     def post(self, request: Request):
         serializer = SetRestoredPasswordSerializer(data=request.data)
@@ -106,6 +118,17 @@ class SetRestoredPasswordView(APIView):
             serializer.set_new_password()
             return Response(
                 'Ваш пароль успешно восстановлен.',
+                status=status.HTTP_200_OK
+            )
+
+
+class SetNewEmailView(APIView):
+    def post(self, request: Request):
+        serializer = UpdateEmailSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.update()
+            return Response(
+                'Ваша почта успешно изменена.',
                 status=status.HTTP_200_OK
             )
 
@@ -121,3 +144,20 @@ class DeleteAccountView(APIView):
             status=status.HTTP_204_NO_CONTENT
         )
 
+
+class UpdateUsernameImageAccountView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, email):
+        try:
+            obj = User.objects.get(email=email)
+        except:
+            return Response('Пользователь с таким первичным ключем отсутствует.',
+            status=status.HTTP_404_NOT_FOUND
+            )
+        serializer = UpdateUsernameImageSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid(raise_exception=True):
+            serializer.update(obj, serializer.validated_data)
+            answer = {"status": "UPDATE" }
+            answer.update(serializer.data, status=status.HTTP_200_OK)
+            return Response(answer)
