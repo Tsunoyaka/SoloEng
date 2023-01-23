@@ -3,10 +3,13 @@ from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.conf import settings
 
+
+from apps.english_cours.models import JoinCours, Courses, Lessons, CoursProgres
 from .tasks import send_activation_code
 
 
 User = get_user_model()
+
 
 
 def email_validator(email):
@@ -21,15 +24,42 @@ def email_validator(email):
 class UsersSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('username', 'email')  
+        fields = ('username', 'email', 'image', 'score')  
+
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        join_cours = JoinCours.objects.filter(user=instance).count()
+        cours = Courses.objects.all().count()
+        lessons = Lessons.objects.all().count()
+        lesson_prog = CoursProgres.objects.filter(user=instance).count()
+        if lesson_prog and join_cours:
+            representation['all_cours_progres_percent'] = round(join_cours / cours * 100, 1)
+            representation['all_lessons_progres_percent'] = round(lesson_prog / lessons * 100, 1)
+        elif join_cours:
+            representation['all_cours_progres_percent'] = round(join_cours / cours * 100, 1)
+            representation['all_lessons_progres_percent'] = 0.0
+        else:
+            representation['all_cours_progres_percent'] = 0.0
+            representation['all_lessons_progres_percent'] = 0.0
+        return representation
+
+
+
+class RatingUsersSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'image', 'score')  
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password_confirm = serializers.CharField(max_length=128, required=True)
 
+
     class Meta:
         model = User
         fields = ('username', 'email', 'password', 'password_confirm')
+
 
     def validate_email(self, email):
         if User.objects.filter(email=email).exists():
@@ -37,6 +67,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
                 'Email already in use'
             )
         return email
+
 
     def validate(self, attrs):
         password = attrs.get('password')
@@ -209,10 +240,3 @@ class UpdateEmailSerializer(serializers.ModelSerializer):
         user_email = User.objects.get(email=old_email)
         user_email.email = new_email
         user_email.save()
-        # del_user = User.objects.get(email=old_email).delete()
-        # email = self.validated_data.get('email')
-        # user = User.objects.get(email=email)
-        # new_password = self.validated_data.get('new_password')
-        # user.set_password(new_password)
-        # user.activation_code = ''
-        # user.save()

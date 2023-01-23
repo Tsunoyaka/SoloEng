@@ -11,3 +11,5 @@ celery
 redis
 pewee
 django-cors-headers
+
+

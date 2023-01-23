@@ -1,9 +1,8 @@
 from django.db import models
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.utils.crypto import get_random_string
-from slugify import slugify
-from decouple import config
 from django.core.exceptions import ValidationError
+
 
 class UserManager(BaseUserManager):
     def _create(self, username, email, password, **extra_fields):
@@ -35,6 +34,7 @@ class User(AbstractBaseUser):
     username = models.CharField('Username', max_length=50, blank=True)
     email = models.EmailField('Email', max_length=255, unique=True)
     image = models.ImageField(upload_to='user_images', blank=True, null=True)
+    score = models.IntegerField(default=0)
     is_active = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
     activation_code = models.CharField(max_length=8, blank=True)

@@ -13,6 +13,8 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
+
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework import permissions
@@ -21,8 +23,6 @@ from drf_yasg import openapi
 from django.conf.urls.static import static
 from django.conf import settings
 from rest_framework.routers import DefaultRouter
-
-
 
 
 schema_view = get_schema_view(
@@ -38,10 +38,13 @@ schema_view = get_schema_view(
    permission_classes=[permissions.AllowAny],
 )
 
+
 urlpatterns = [
     path('', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('admin/', admin.site.urls),
     path('account/', include('apps.account.urls')),
+    path('test/', include('apps.english_exam.urls')),
+    path('cours/', include('apps.english_cours.urls')),
 ]
 
 

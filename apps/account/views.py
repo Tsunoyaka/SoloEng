@@ -15,7 +15,8 @@ from .serializers import (
     SetRestoredPasswordSerializer,
     UsersSerializer,
     UpdateUsernameImageSerializer,
-    UpdateEmailSerializer
+    UpdateEmailSerializer,
+    RatingUsersSerializer
     )
 
 
@@ -23,29 +24,15 @@ User = get_user_model()
 
 
 class UserView(APIView):
-    def get(self, request, pk):
-            try:
-                user = User.objects.get(email=pk)
-            except:
-                return Response('Пользователя под таким первичным ключём не существует.',
-                status=status.HTTP_404_NOT_FOUND)
-            serializer = UsersSerializer(instance=user)
-            # # usernames = [user.username for user in User.objects.all()]
-            return Response(serializer.data)
-
-class ListUsersView(APIView):
     def get(self, request):
-        usernames = User.objects.all()
-        list_ = []
-        for user in usernames:
-           B = {
-            'user': user.username,
-            'email': user.email 
-           }
-           list_.append(B)
-        return Response(list_)
-        
-
+            try:
+                user = User.objects.get(email=request.user.email)
+            except:
+                return Response('Зарегестрируйтесь для выполнения этого действия',
+                status=status.HTTP_404_NOT_FOUND)
+            serializer = UsersSerializer(instance=user, context={'request': request})
+            return Response(serializer.data)
+    
 
 class RegistrationView(APIView):
     @swagger_auto_schema(request_body=UserRegistrationSerializer)
@@ -57,6 +44,7 @@ class RegistrationView(APIView):
                 'Спасибо за регистрацию! Ссылка для активации учетной записи отправлена Вам на почту.',
                 status=status.HTTP_201_CREATED
             )
+
 
 class AccountActivationView(APIView):
     def get(self, request, activation_code):
@@ -73,6 +61,13 @@ class AccountActivationView(APIView):
             'Учетная запись активирована! Теперь Вы можете войти на Booking.com', 
             status=status.HTTP_200_OK
             )
+
+
+class UserRatingAPIView(APIView):
+    def get(self, request):
+        rating = User.objects.order_by('-score')
+        serializer = RatingUsersSerializer(rating, many=True).data
+        return Response(data=serializer)
 
 
 class ChangePasswordView(APIView):
